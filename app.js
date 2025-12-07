@@ -70,16 +70,23 @@ function checkAuthReady() {
             // Try silent login
             try {
                 tokenClient.callback = handleAuthResponse;
-                tokenClient.requestAccessToken({ prompt: 'none' });
+                const storedEmail = localStorage.getItem('vt_user_email');
+                const config = { prompt: 'none' };
+                if (storedEmail) {
+                    config.login_hint = storedEmail;
+                }
+                tokenClient.requestAccessToken(config);
             } catch (e) {
                 console.warn("Silent login failed", e);
                 authorizeButton.classList.remove('hidden');
                 authStatus.innerText = "Session expired. Please sign in.";
                 localStorage.removeItem('vt_is_logged_in');
+                localStorage.removeItem('vt_user_email');
             }
         }
     }
 }
+
 
 // --- AUTHENTICATION ---
 
@@ -91,6 +98,7 @@ async function handleAuthResponse(resp) {
             authStatus.innerText = "Please sign in.";
             localStorage.removeItem('vt_token_expiry');
             localStorage.removeItem('vt_is_logged_in'); // Clear persistence flag on failure
+            localStorage.removeItem('vt_user_email');
         } else {
             throw (resp);
         }
@@ -108,6 +116,16 @@ async function handleAuthResponse(resp) {
     // Fix: Set token for GAPI Client
     if (gapi.client) {
         gapi.client.setToken(resp);
+    }
+
+    // Fetch and store User Email for next silent login
+    try {
+        const userInfo = await gapi.client.drive.about.get({ fields: 'user' });
+        if (userInfo.result.user && userInfo.result.user.emailAddress) {
+            localStorage.setItem('vt_user_email', userInfo.result.user.emailAddress);
+        }
+    } catch (e) {
+        console.warn("Could not fetch user email for hint:", e);
     }
 
     authOverlay.classList.add('opacity-0', 'pointer-events-none');
@@ -364,6 +382,7 @@ document.getElementById('logout-btn').onclick = () => {
         // Simple reload to clear auth state from memory
         localStorage.removeItem('vt_is_logged_in');
         localStorage.removeItem('vt_token_expiry');
+        localStorage.removeItem('vt_user_email');
         window.location.reload();
     }
 };
