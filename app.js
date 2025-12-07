@@ -7,7 +7,7 @@
 // --- CONFIGURATION ---
 const CLIENT_ID = '634015940786-k50ahjkg605csqrdik4tg3sl82lrss0a.apps.googleusercontent.com';
 const API_KEY = '';
-const SCOPES = 'https://www.googleapis.com/auth/spreadsheets https://www.googleapis.com/auth/drive.file';
+const SCOPES = 'https://www.googleapis.com/auth/spreadsheets https://www.googleapis.com/auth/drive.file https://www.googleapis.com/auth/userinfo.email';
 
 // Spreadsheet ID will be found or created dynamically.
 let SPREADSHEET_ID = localStorage.getItem('vt_spreadsheet_id') || null;
@@ -120,9 +120,16 @@ async function handleAuthResponse(resp) {
 
     // Fetch and store User Email for next silent login
     try {
-        const userInfo = await gapi.client.drive.about.get({ fields: 'user' });
-        if (userInfo.result.user && userInfo.result.user.emailAddress) {
-            localStorage.setItem('vt_user_email', userInfo.result.user.emailAddress);
+        const accessToken = resp.access_token;
+        if (accessToken) {
+            const userInfoResp = await fetch('https://www.googleapis.com/oauth2/v3/userinfo', {
+                headers: { 'Authorization': `Bearer ${accessToken}` }
+            });
+            const userInfo = await userInfoResp.json();
+            if (userInfo && userInfo.email) {
+                console.log("Email stored for silent auth:", userInfo.email);
+                localStorage.setItem('vt_user_email', userInfo.email);
+            }
         }
     } catch (e) {
         console.warn("Could not fetch user email for hint:", e);
