@@ -121,12 +121,10 @@ async function handleAuthResponse(resp) {
 
 authorizeButton.onclick = () => {
     tokenClient.callback = handleAuthResponse;
-
-    if (gapi.client.getToken() === null) {
-        tokenClient.requestAccessToken({ prompt: 'consent' });
-    } else {
-        tokenClient.requestAccessToken({ prompt: '' });
-    }
+    // Always use empty prompt (or 'select_account') to avoid forced consent screen.
+    // If not signed in to Google, it will ask to sign in.
+    // If signed in, it will likely just proceed or ask to choose account.
+    tokenClient.requestAccessToken({ prompt: '' });
 };
 
 // --- DATABASE MANIPULATION (SHEETS) ---
