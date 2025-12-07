@@ -680,14 +680,28 @@ async function deleteCustomer(row) {
 
         if (rowIndex === -1) throw new Error("Customer row not found in database.");
 
-        // 2. Delete the row (API uses 0-based index for deleteDimension)
+        // 2. Find the Sheet ID (don't assume 0)
+        const metaResp = await gapi.client.sheets.spreadsheets.get({
+            spreadsheetId: SPREADSHEET_ID,
+            fields: 'sheets(properties(sheetId,title))'
+        });
+        const sheets = metaResp.result.sheets;
+        let sheetId = 0;
+        if (sheets) {
+            const customerSheet = sheets.find(s => s.properties.title === 'Customers');
+            if (customerSheet) {
+                sheetId = customerSheet.properties.sheetId;
+            }
+        }
+
+        // 3. Delete the row
         await gapi.client.sheets.spreadsheets.batchUpdate({
             spreadsheetId: SPREADSHEET_ID,
             resource: {
                 requests: [{
                     deleteDimension: {
                         range: {
-                            sheetId: 0,
+                            sheetId: sheetId,
                             dimension: "ROWS",
                             startIndex: rowIndex,
                             endIndex: rowIndex + 1
@@ -697,7 +711,7 @@ async function deleteCustomer(row) {
             }
         });
 
-        // 3. Trash the photo folder
+        // 4. Trash the photo folder
         const folderId = row[3];
         if (folderId) {
             try {
@@ -708,7 +722,7 @@ async function deleteCustomer(row) {
             } catch (ignore) { }
         }
 
-        // 4. Update local cache
+        // 5. Update local cache
         allCustomers = allCustomers.filter(c => c[0] !== bookId);
 
         alert("Customer deleted.");
@@ -722,6 +736,11 @@ async function deleteCustomer(row) {
             msg = err.result.error.message;
         } else if (typeof err === 'string') {
             msg = err;
+        } else {
+            // Fallback: Dump object
+            try {
+                msg = JSON.stringify(err);
+            } catch (e) { msg = "Unparsable Error"; }
         }
         alert("Error deleting customer: " + msg);
     } finally {
