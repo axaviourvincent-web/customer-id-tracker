@@ -1,0 +1,49 @@
+@import url('https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600;700&display=swap');
+
+/* Custom Scrollbar */
+::-webkit-scrollbar {
+    width: 6px;
+}
+::-webkit-scrollbar-track {
+    background: #0f172a; 
+}
+::-webkit-scrollbar-thumb {
+    background: #334155; 
+    border-radius: 10px;
+}
+::-webkit-scrollbar-thumb:hover {
+    background: #475569; 
+}
+
+/* Base Styles */
+body {
+    -webkit-tap-highlight-color: transparent;
+}
+
+/* Animations */
+@keyframes fadeIn {
+    from { opacity: 0; transform: translateY(10px); }
+    to { opacity: 1; transform: translateY(0); }
+}
+
+.view-section {
+    display: none;
+    animation: fadeIn 0.3s ease-out forwards;
+}
+
+.view-section.active {
+    display: block;
+}
+
+.nav-btn.active svg {
+    color: #6366f1; /* Indigo-500 */
+}
+
+.nav-btn.active span {
+    color: #818cf8; /* Indigo-400 */
+}
+
+/* Safe Area for Mobile */
+.pb-safe {
+    padding-bottom: env(safe-area-inset-bottom, 20px);
+}
