@@ -716,8 +716,14 @@ async function deleteCustomer(row) {
         performSearch();
 
     } catch (err) {
-        console.error(err);
-        alert("Error deleting customer: " + err.message);
+        console.error("Delete Error Details:", err);
+        let msg = err.message || "Unknown error";
+        if (err.result && err.result.error && err.result.error.message) {
+            msg = err.result.error.message;
+        } else if (typeof err === 'string') {
+            msg = err;
+        }
+        alert("Error deleting customer: " + msg);
     } finally {
         btn.innerText = originalText;
         btn.disabled = false;
