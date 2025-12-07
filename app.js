@@ -57,11 +57,12 @@ function checkAuthReady() {
         authStatus.innerText = "Ready to connect.";
 
         // Auto-login logic
-        const expiry = localStorage.getItem('vt_token_expiry');
-        const now = Date.now();
+        // We check if the user was previously logged in (flag)
+        // We do NOT check expiry strictly here, because even if the access token expired,
+        // we might be able to get a NEW one silently if the user is signed into Google.
+        const isLoggedIn = localStorage.getItem('vt_is_logged_in') === 'true';
 
-        if (expiry && now < parseInt(expiry)) {
-            // Token theoretically valid (or within session window), try silent refresh
+        if (isLoggedIn) {
             console.log("Attempting silent login...");
             authStatus.innerText = "Restoring session...";
             authorizeButton.classList.add('hidden');
@@ -74,6 +75,7 @@ function checkAuthReady() {
                 console.warn("Silent login failed", e);
                 authorizeButton.classList.remove('hidden');
                 authStatus.innerText = "Session expired. Please sign in.";
+                localStorage.removeItem('vt_is_logged_in');
             }
         }
     }
@@ -88,6 +90,7 @@ async function handleAuthResponse(resp) {
             authorizeButton.classList.remove('hidden');
             authStatus.innerText = "Please sign in.";
             localStorage.removeItem('vt_token_expiry');
+            localStorage.removeItem('vt_is_logged_in'); // Clear persistence flag on failure
         } else {
             throw (resp);
         }
@@ -96,10 +99,11 @@ async function handleAuthResponse(resp) {
 
     isAuthenticated = true;
 
-    // Store simple expiry (1 hour - buffer)
+    // Store simple expiry (1 hour - buffer) and Persistent Flag
     const expiresIn = (resp.expires_in || 3599) * 1000;
     const expiryTime = Date.now() + expiresIn - 5 * 60 * 1000; // 5 min buffer
     localStorage.setItem('vt_token_expiry', expiryTime);
+    localStorage.setItem('vt_is_logged_in', 'true'); // MARK AS LOGGED IN
 
     // Fix: Set token for GAPI Client
     if (gapi.client) {
@@ -360,6 +364,8 @@ document.getElementById('logout-btn').onclick = () => {
             // For simple use case, we re-prompt on next login by not restoring session automatically
         }
         // Simple reload to clear auth state from memory
+        localStorage.removeItem('vt_is_logged_in');
+        localStorage.removeItem('vt_token_expiry');
         window.location.reload();
     }
 };
