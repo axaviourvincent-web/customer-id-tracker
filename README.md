@@ -1,4 +1,4 @@
-# Vincent Tailoring - Customer Tracker PWA
+# Customer Tracker PWA
 
 A secure, mobile-friendly web application for managing customer details, measurements, and photos.
 
@@ -15,3 +15,4 @@ A secure, mobile-friendly web application for managing customer details, measure
 
 ## Version
 v1.2
+
