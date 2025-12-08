@@ -63,6 +63,26 @@
         </div>
     </div>
 
+    <!-- Exit Confirmation Modal (Android Back Trap) -->
+    <div id="exit-modal"
+        class="fixed inset-0 z-[80] bg-slate-900/90 backdrop-blur-sm hidden flex items-center justify-center p-6">
+        <div
+            class="bg-slate-800 border border-white/10 rounded-2xl p-6 w-full max-w-sm shadow-2xl transform scale-100 transition-all">
+            <h3 class="text-xl font-bold text-white mb-2">Exit App?</h3>
+            <p class="text-slate-400 mb-6">Do you really want to close the application?</p>
+            <div class="flex gap-3">
+                <button id="exit-cancel-btn"
+                    class="flex-1 py-3 bg-slate-700 text-white rounded-xl font-medium hover:bg-slate-600 transition">
+                    Cancel
+                </button>
+                <button id="exit-confirm-btn"
+                    class="flex-1 py-3 bg-red-600 text-white rounded-xl font-medium hover:bg-red-700 transition shadow-lg shadow-red-500/20">
+                    Exit
+                </button>
+            </div>
+        </div>
+    </div>
+
     <!-- Main Application (Hidden until Auth) -->
     <div id="app-container" class="hidden min-h-screen flex flex-col pb-20">
 
@@ -70,7 +90,7 @@
         <header
             class="sticky top-0 z-40 bg-slate-900/80 backdrop-blur-md border-b border-white/10 px-6 py-4 flex justify-between items-center">
             <h1 class="text-xl font-bold tracking-wide">Vincent Tailoring <span
-                    class="text-xs text-slate-500 font-normal">v1.3</span></h1>
+                    class="text-xs text-slate-500 font-normal">v1.4</span></h1>
             <div id="user-profile" class="w-8 h-8 rounded-full bg-gradient-to-tr from-indigo-500 to-purple-500"></div>
         </header>
 

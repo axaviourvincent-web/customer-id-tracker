@@ -226,22 +226,148 @@ async function fetchAllCustomers() {
 // --- APP LOGIC ---
 
 // Navigation
+// Navigation & Routing (History API)
+const viewMap = {
+    'view-search': document.getElementById('view-search'),
+    'view-add': document.getElementById('view-add'),
+    'view-details': document.getElementById('view-details'),
+    'view-edit': document.getElementById('view-edit'),
+    'view-settings': document.getElementById('view-settings')
+};
+
+// Exit Confirmation Modal Strings
+const exitModal = document.getElementById('exit-modal');
+const exitConfirmBtn = document.getElementById('exit-confirm-btn');
+const exitCancelBtn = document.getElementById('exit-cancel-btn');
+
+function navigateTo(viewId, addToHistory = true) {
+    // Hide Exit Modal if open (navigation cancels exit intent)
+    exitModal.classList.add('hidden');
+
+    // Switch View
+    Object.values(viewMap).forEach(el => {
+        el.classList.remove('active');
+        el.classList.add('hidden');
+    });
+
+    // Safety check
+    if (!viewMap[viewId]) viewId = 'view-search';
+
+    viewMap[viewId].classList.add('active');
+    viewMap[viewId].classList.remove('hidden');
+
+    // Update Bottom Nav Styling
+    document.querySelectorAll('.nav-btn').forEach(btn => {
+        if (btn.getAttribute('data-target') === viewId) {
+            btn.classList.add('active');
+        } else {
+            btn.classList.remove('active');
+        }
+    });
+
+    if (viewId === 'view-search') document.getElementById('search-input').focus();
+
+    // History Logic
+    if (addToHistory) {
+        history.pushState({ view: viewId }, "", `#${viewId}`);
+    }
+}
+
+function handleRouting(event) {
+    const state = event.state;
+    // If state exists, it means we are navigating within the app history
+    if (state && state.view) {
+        navigateTo(state.view, false); // Don't push again
+    } else {
+        // We hit the beginning of history (or null state)
+        // This usually means the user pressed "Back" on the initially loaded page.
+        // We want to TRAP this if we are effectively at "Home".
+
+        // However, standard browser behavior is tricky.
+        // Strategy: When app loads, we replaceState to 'home' and pushState 'home' again?
+        // Better Strategy for "Exit Trap":
+        // 1. App Loads -> pushState({view: 'view-search'}, "Home", "#home").
+        // 2. User presses Back -> popstate event with state null.
+        // 3. We show Exit Modal.
+        // 4. We pushState again immediately to restore the forward path? Or we stay at null?
+
+        showExitConfirmation();
+    }
+}
+
+function showExitConfirmation() {
+    exitModal.classList.remove('hidden');
+    // We need to ensure that if they click "Cancel", we are back in a valid state.
+    // If we popped to null to get here, we are technically "outside" our history stack.
+    // So "Cancel" should push state back to Home.
+}
+
+exitCancelBtn.onclick = () => {
+    exitModal.classList.add('hidden');
+    // Restore state (effectively "Cancel Exit" -> go back to Home state)
+    history.pushState({ view: 'view-search' }, "", "#view-search");
+};
+
+exitConfirmBtn.onclick = () => {
+    // Ideally, let the browser exit. 
+    // Since we are at the end of history (null state), going back again *should* close the app/tab.
+    // Or we used history.back() to trigger the exit if we pushed a dummy state.
+
+    // For installed PWA on Android, window.close() might not work.
+    // But if we are in the null state, and we do history.back(), it should exit.
+    history.back();
+    // Fallback
+    window.close();
+};
+
+window.addEventListener('popstate', handleRouting);
+
+// Initialize Navigation Listeners
 document.querySelectorAll('.nav-btn').forEach(btn => {
     btn.addEventListener('click', (e) => {
         const targetId = btn.getAttribute('data-target');
-        if (!targetId) return;
-
-        document.querySelectorAll('.view-section').forEach(el => el.classList.remove('active'));
-        document.querySelectorAll('.view-section').forEach(el => el.classList.add('hidden'));
-        document.getElementById(targetId).classList.add('active');
-        document.getElementById(targetId).classList.remove('hidden');
-
-        document.querySelectorAll('.nav-btn').forEach(b => b.classList.remove('active'));
-        btn.classList.add('active');
-
-        if (targetId === 'view-search') document.getElementById('search-input').focus();
+        if (targetId) navigateTo(targetId);
     });
 });
+
+// Initialize App Routing on Load
+function initRouter() {
+    // Push initial state so we have something to pop FROM
+    // We replace the current (null) state with Home, then Push Home?
+    // No, standard PWA pattern:
+    // Load -> Replace State (Home). Then if user navigates, Push State.
+    // Problem: Back button on Home should Exit.
+    // If we want to TRAP exit, we need: [Null] -> [Home].
+    // Back from Home -> [Null] -> Trap.
+
+    // Check if we already have state (reload)
+    if (!history.state) {
+        // Initial Load
+        history.replaceState(null, "", null); // Ensure root is null
+        history.pushState({ view: 'view-search' }, "", "#view-search"); // Push Home
+    } else {
+        // Reloaded page with state
+        navigateTo(history.state.view, false);
+    }
+}
+
+// Call initRouter later in initialization or end of script
+setTimeout(initRouter, 100);
+
+// Update Back Buttons to use History
+document.getElementById('back-btn').onclick = () => {
+    history.back();
+};
+
+// Update AddForm Success Navigation
+// Found in addForm.onsubmit: document.querySelector('[data-target="view-search"]').click(); 
+// This triggers the click listener => navigateTo => pushState. Use direct navigateTo?
+// Better to search code and replace manual clicks.
+
+// Same for Cancel Edit: showCustomerDetails calls view setup directly. 
+// We should refactor to use routing or ensure consistency. 
+// For now, let's just make sure the Back Button is the primary fix.
+
 
 // Search
 const searchBtn = document.getElementById('search-btn');
@@ -365,17 +491,25 @@ function showCustomerDetails(row) {
     // Setup Edit Button
     document.getElementById('edit-customer-btn').onclick = () => showEditView(row);
 
-    document.querySelectorAll('.view-section').forEach(el => el.classList.remove('active'));
-    document.querySelectorAll('.view-section').forEach(el => el.classList.add('hidden'));
-    document.getElementById('view-details').classList.remove('hidden');
-    document.getElementById('view-details').classList.add('active');
+    // Using navigateTo without pushing state if we don't want deep linking to specific customer yet?
+    // Actually, good UX is: Click Customer -> Push State (Details). Back -> Search.
+    // But our current navigateTo expects a viewId. 'view-details' is a view. 
+    // So we should navigateTo('view-details').
+    // BUT we need to set the DOM content first.
+
+    // Ideally: set content, then navigate.
+    navigateTo('view-details');
 
     loadPhotos(row[3]);
 }
 
-document.getElementById('back-btn').onclick = () => {
-    document.querySelector('[data-target="view-search"]').click();
-};
+// Back Button is already handled globally by history.back logic injected previously
+// But wait, the standard router back-btn logic replaced the specific onclick.
+// document.getElementById('back-btn').onclick... was replaced? 
+// No, I added the listener in the big block. I need to remove the OLD listener if it conflicts.
+// The old listener was: document.getElementById('back-btn').onclick = ... 
+// I replaced lines 229, but the old back-btn listener was at line 376 (original).
+// I should remove/update that one too.
 
 // Logout
 document.getElementById('logout-btn').onclick = () => {
@@ -768,20 +902,6 @@ async function deleteCustomer(row) {
                 });
             } catch (ignore) { }
         }
-
-        // 5. Update local cache
-        // Filter out the deleted ID
-        allCustomers = allCustomers.filter(c => c[0] !== bookId);
-
-        alert("Customer deleted.");
-        document.querySelector('[data-target="view-search"]').click();
-        performSearch();
-
-    } catch (err) {
-        console.error("Delete Error Details:", err);
-        let msg = err.message || "Unknown error";
-        // ... (Error handling remains)
-        alert("Error deleting customer (v1.3): " + msg);
     } finally {
         btn.innerText = originalText;
         btn.disabled = false;
@@ -845,53 +965,41 @@ editForm.onsubmit = async (e) => {
         currentCustomerRow[1] = newName;
         currentCustomerRow[2] = newPhone;
 
-        alert("Customer details updated.");
-        showCustomerDetails(currentCustomerRow);
+        // --- IMAGE VIEWER ---
 
-    } catch (err) {
-        console.error(err);
-        alert("Error updating customer: " + err.message);
-    } finally {
-        btn.disabled = false;
-        btn.innerText = originalText;
-    }
-};
+        const imageViewerModal = document.getElementById('image-viewer-modal');
+        const fullScreenImage = document.getElementById('full-image'); // Corrected ID
+        const closeViewerBtn = document.getElementById('close-viewer-btn');
 
-// --- IMAGE VIEWER ---
+        function openImageViewer(url) {
+            if (!fullScreenImage) {
+                console.error("Image element not found!");
+                return;
+            }
+            fullScreenImage.src = url;
+            imageViewerModal.classList.remove('hidden');
+        }
 
-const imageViewerModal = document.getElementById('image-viewer-modal');
-const fullScreenImage = document.getElementById('full-image'); // Corrected ID
-const closeViewerBtn = document.getElementById('close-viewer-btn');
+        function closeImageViewer() {
+            imageViewerModal.classList.add('hidden');
+            fullScreenImage.src = '';
+        }
 
-function openImageViewer(url) {
-    if (!fullScreenImage) {
-        console.error("Image element not found!");
-        return;
-    }
-    fullScreenImage.src = url;
-    imageViewerModal.classList.remove('hidden');
-}
+        if (closeViewerBtn) {
+            closeViewerBtn.onclick = closeImageViewer;
+        }
 
-function closeImageViewer() {
-    imageViewerModal.classList.add('hidden');
-    fullScreenImage.src = '';
-}
-
-if (closeViewerBtn) {
-    closeViewerBtn.onclick = closeImageViewer;
-}
-
-if (imageViewerModal) {
-    imageViewerModal.onclick = (e) => {
-        if (e.target === imageViewerModal) closeImageViewer();
-    };
-}
+        if (imageViewerModal) {
+            imageViewerModal.onclick = (e) => {
+                if (e.target === imageViewerModal) closeImageViewer();
+            };
+        }
 
 
-// Expose functions to global scope for inline HTML handlers
-window.openImageViewer = openImageViewer;
-window.deletePhoto = deletePhoto;
+        // Expose functions to global scope for inline HTML handlers
+        window.openImageViewer = openImageViewer;
+        window.deletePhoto = deletePhoto;
 
-// Expose functions to global scope for inline HTML handlers
-window.openImageViewer = openImageViewer;
-window.deletePhoto = deletePhoto;
+        // Expose functions to global scope for inline HTML handlers
+        window.openImageViewer = openImageViewer;
+        window.deletePhoto = deletePhoto;
