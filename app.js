@@ -405,7 +405,7 @@ function performSearch() {
         card.innerHTML = `
             <div>
                 <h3 class="font-bold text-lg text-white group-hover:text-indigo-400 transition-colors">${row[0]}</h3>
-                <p class="text-slate-400 text-sm">${row[1]}</p>
+                <p class="text-slate-300 text-lg font-medium">${row[1]}</p>
             </div>
             <div class="text-right">
                 <p class="text-indigo-400 font-mono group-hover:text-indigo-300 transition-colors">${row[2]}</p>
@@ -481,7 +481,9 @@ function showCustomerDetails(row) {
     document.getElementById('det-book-id').innerText = row[0];
     document.getElementById('det-name').innerText = row[1];
     document.getElementById('det-phone').innerText = row[2];
-    document.getElementById('det-phone-link').href = `tel:${row[2]}`;
+    const rawPhone = row[2] ? row[2].toString() : "";
+    const cleanPhone = rawPhone.replace(/\D/g, ''); // Remove non-digits
+    document.getElementById('det-phone-link').href = `tel:${cleanPhone}`;
     document.getElementById('det-date-created').innerText = row[4] || "Unknown";
 
     // Setup Delete Button
@@ -796,9 +798,6 @@ async function deleteCustomer(row) {
     btn.disabled = true;
 
     try {
-        // DEBUG TRACE
-        alert("Debug (v1.4.4): Starting deletion logic for " + bookId);
-
         // 1. Find the exact row index
         const response = await gapi.client.sheets.spreadsheets.values.get({
             spreadsheetId: SPREADSHEET_ID,
@@ -834,23 +833,13 @@ async function deleteCustomer(row) {
                 console.warn("Sheet ID is undefined/null in metadata, assuming 0.");
                 sheetId = 0;
             }
-            console.log(`Found 'Customers' sheet. ID: ${sheetId}`);
         } else {
-            const currentSheetNames = sheets ? sheets.map(s => `${s.properties.title} [${s.properties.sheetId}]`).join(', ') : "None";
-            alert(`Debug Error: Could not find 'Customers' sheet.\nAvailable sheets: ${currentSheetNames}`);
             if (sheets && sheets.length === 1) {
                 sheetId = sheets[0].properties.sheetId;
             } else {
-                throw new Error("Could not identify the 'Customers' sheet. See alert.");
+                throw new Error("Could not identify the 'Customers' sheet.");
             }
         }
-
-        if (sheetId === undefined || sheetId === null) {
-            alert("Critical Error: Sheet ID is undefined before deletion.");
-            throw new Error("Sheet ID unresolved.");
-        }
-
-        alert("Debug: Attempting deleteDimension on Sheet " + sheetId + " Row " + rowIndex);
 
         // 3. Delete the row (Try physical deletion first)
         try {
@@ -871,10 +860,8 @@ async function deleteCustomer(row) {
                     }]
                 }
             });
-            console.log("Physical row deletion successful.");
         } catch (deleteErr) {
             console.error("Physical deletion failed, attempting fallback (clear row).", deleteErr);
-            alert("Debug: Physical delete failed. Attempting Fallback (Clear Row)...");
             const a1Row = rowIndex + 1;
             await gapi.client.sheets.spreadsheets.values.clear({
                 spreadsheetId: SPREADSHEET_ID,
@@ -896,13 +883,13 @@ async function deleteCustomer(row) {
         // 5. Update local cache
         allCustomers = allCustomers.filter(c => c[0] !== bookId);
 
-        alert("Customer deleted successfully.");
+        alert("Customer deleted.");
         document.querySelector('[data-target="view-search"]').click();
         performSearch();
 
     } catch (err) {
         console.error("Delete Error Details:", err);
-        alert("Error deleting customer (v1.4.4): " + (err.message || "Unknown"));
+        alert("Error deleting customer: " + (err.message || "Unknown"));
     } finally {
         btn.innerText = originalText;
         btn.disabled = false;

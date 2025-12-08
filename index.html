@@ -90,7 +90,7 @@
         <header
             class="sticky top-0 z-40 bg-slate-900/80 backdrop-blur-md border-b border-white/10 px-6 py-4 flex justify-between items-center">
             <h1 class="text-xl font-bold tracking-wide">Vincent Tailoring <span
-                    class="text-xs text-slate-500 font-normal">v1.4.4</span></h1>
+                    class="text-xs text-slate-500 font-normal">v1.4.5</span></h1>
             <div id="user-profile" class="w-8 h-8 rounded-full bg-gradient-to-tr from-indigo-500 to-purple-500"></div>
         </header>
 
@@ -104,6 +104,7 @@
                         class="absolute -inset-0.5 bg-gradient-to-r from-indigo-500 to-cyan-500 rounded-xl opacity-75 group-hover:opacity-100 transition duration-200 blur">
                     </div>
                     <input type="text" id="search-input" placeholder="Enter Name, Phone or ID number..."
+                        autocomplete="off"
                         class="relative w-full bg-slate-800 text-white px-6 py-4 rounded-xl focus:outline-none focus:ring-2 focus:ring-white/20 text-lg placeholder:text-slate-500">
                     <button id="search-btn"
                         class="absolute right-3 top-1/2 -translate-y-1/2 p-2 bg-indigo-600 rounded-lg text-white shadow-lg">
@@ -138,19 +139,20 @@
                     <div>
                         <label class="block text-sm font-medium text-slate-400 mb-1">Customer ID</label>
                         <input type="text" id="inp-book-id" required pattern="[A-Z][0-9]{4}" placeholder="e.g., A1234"
+                            autocomplete="off"
                             class="w-full bg-slate-800 border border-white/10 rounded-lg px-4 py-3 focus:border-indigo-500 outline-none uppercase transition-colors">
                         <p class="text-xs text-slate-500 mt-1">Format: Book Letter + 4 Digits</p>
                     </div>
 
                     <div>
                         <label class="block text-sm font-medium text-slate-400 mb-1">Full Name</label>
-                        <input type="text" id="inp-name" required placeholder="Enter Name"
+                        <input type="text" id="inp-name" required placeholder="Enter Name" autocomplete="off"
                             class="w-full bg-slate-800 border border-white/10 rounded-lg px-4 py-3 focus:border-indigo-500 outline-none transition-colors">
                     </div>
 
                     <div>
                         <label class="block text-sm font-medium text-slate-400 mb-1">Phone Number</label>
-                        <input type="tel" id="inp-phone" required placeholder="Enter number"
+                        <input type="tel" id="inp-phone" required placeholder="Enter number" autocomplete="off"
                             class="w-full bg-slate-800 border border-white/10 rounded-lg px-4 py-3 focus:border-indigo-500 outline-none transition-colors">
                     </div>
 
