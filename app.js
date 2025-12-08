@@ -462,7 +462,7 @@ addForm.onsubmit = async (e) => {
         });
         alert("Customer Saved!");
         addForm.reset();
-        document.querySelector('[data-target="view-search"]').click();
+        showCustomerDetails(newRow);
     } catch (err) {
         console.error(err);
         alert("Error saving: " + err.message);
