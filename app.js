@@ -796,6 +796,9 @@ async function deleteCustomer(row) {
     btn.disabled = true;
 
     try {
+        // DEBUG TRACE
+        alert("Debug (v1.4.4): Starting deletion logic for " + bookId);
+
         // 1. Find the exact row index
         const response = await gapi.client.sheets.spreadsheets.values.get({
             spreadsheetId: SPREADSHEET_ID,
@@ -827,41 +830,31 @@ async function deleteCustomer(row) {
 
         if (customerSheet) {
             sheetId = customerSheet.properties.sheetId;
-            // CHECK if sheetId is undefined (which might happen if it's 0 and API omits it? unlikely but possible)
             if (sheetId === undefined || sheetId === null) {
                 console.warn("Sheet ID is undefined/null in metadata, assuming 0.");
                 sheetId = 0;
             }
             console.log(`Found 'Customers' sheet. ID: ${sheetId}`);
         } else {
-            // Debugging: Show what we found
             const currentSheetNames = sheets ? sheets.map(s => `${s.properties.title} [${s.properties.sheetId}]`).join(', ') : "None";
             alert(`Debug Error: Could not find 'Customers' sheet.\nAvailable sheets: ${currentSheetNames}`);
-
-            // Fallback: If only one sheet exists, use it.
             if (sheets && sheets.length === 1) {
-                console.warn("Exact 'Customers' sheet not found, using the only available sheet:", sheets[0].properties.title);
                 sheetId = sheets[0].properties.sheetId;
             } else {
-                console.error("Available sheets:", sheets);
                 throw new Error("Could not identify the 'Customers' sheet. See alert.");
             }
         }
 
-        // Final Safety Check
         if (sheetId === undefined || sheetId === null) {
             alert("Critical Error: Sheet ID is undefined before deletion.");
             throw new Error("Sheet ID unresolved.");
         }
 
-        console.log(`Executing deleteDimension on SheetID: ${sheetId} for RowIndex: ${rowIndex}`);
+        alert("Debug: Attempting deleteDimension on Sheet " + sheetId + " Row " + rowIndex);
 
         // 3. Delete the row (Try physical deletion first)
         try {
-            // Check sheetId again just to be safe before calling API
-            if (sheetId === undefined || sheetId === null) {
-                sheetId = 0; // Try default
-            }
+            if (sheetId === undefined || sheetId === null) sheetId = 0;
 
             await gapi.client.sheets.spreadsheets.batchUpdate({
                 spreadsheetId: SPREADSHEET_ID,
@@ -881,15 +874,12 @@ async function deleteCustomer(row) {
             console.log("Physical row deletion successful.");
         } catch (deleteErr) {
             console.error("Physical deletion failed, attempting fallback (clear row).", deleteErr);
-            // Fallback: Clear the row content using A1 notation (Sheet ID agnostic!)
-            // rowIndex is 0-based. A1 notation is 1-based.
+            alert("Debug: Physical delete failed. Attempting Fallback (Clear Row)...");
             const a1Row = rowIndex + 1;
             await gapi.client.sheets.spreadsheets.values.clear({
                 spreadsheetId: SPREADSHEET_ID,
                 range: `Customers!A${a1Row}:Z${a1Row}`
             });
-            console.log(`Fallback: Cleared content of row ${a1Row}`);
-            alert("Note: Optimization failed, but customer data was cleared successfully.");
         }
 
         // 4. Trash the photo folder
@@ -902,6 +892,17 @@ async function deleteCustomer(row) {
                 });
             } catch (ignore) { }
         }
+
+        // 5. Update local cache
+        allCustomers = allCustomers.filter(c => c[0] !== bookId);
+
+        alert("Customer deleted successfully.");
+        document.querySelector('[data-target="view-search"]').click();
+        performSearch();
+
+    } catch (err) {
+        console.error("Delete Error Details:", err);
+        alert("Error deleting customer (v1.4.4): " + (err.message || "Unknown"));
     } finally {
         btn.innerText = originalText;
         btn.disabled = false;
