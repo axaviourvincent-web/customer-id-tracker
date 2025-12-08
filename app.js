@@ -965,41 +965,49 @@ editForm.onsubmit = async (e) => {
         currentCustomerRow[1] = newName;
         currentCustomerRow[2] = newPhone;
 
-        // --- IMAGE VIEWER ---
+        alert("Customer details updated.");
+        showCustomerDetails(currentCustomerRow);
 
-        const imageViewerModal = document.getElementById('image-viewer-modal');
-        const fullScreenImage = document.getElementById('full-image'); // Corrected ID
-        const closeViewerBtn = document.getElementById('close-viewer-btn');
+    } catch (err) {
+        console.error(err);
+        alert("Error updating customer: " + err.message);
+    } finally {
+        btn.disabled = false;
+        btn.innerText = originalText;
+    }
+};
 
-        function openImageViewer(url) {
-            if (!fullScreenImage) {
-                console.error("Image element not found!");
-                return;
-            }
-            fullScreenImage.src = url;
-            imageViewerModal.classList.remove('hidden');
-        }
+// --- IMAGE VIEWER ---
 
-        function closeImageViewer() {
-            imageViewerModal.classList.add('hidden');
-            fullScreenImage.src = '';
-        }
+const imageViewerModal = document.getElementById('image-viewer-modal');
+const fullScreenImage = document.getElementById('full-image'); // Corrected ID
+const closeViewerBtn = document.getElementById('close-viewer-btn');
 
-        if (closeViewerBtn) {
-            closeViewerBtn.onclick = closeImageViewer;
-        }
+function openImageViewer(url) {
+    if (!fullScreenImage) {
+        console.error("Image element not found!");
+        return;
+    }
+    fullScreenImage.src = url;
+    imageViewerModal.classList.remove('hidden');
+}
 
-        if (imageViewerModal) {
-            imageViewerModal.onclick = (e) => {
-                if (e.target === imageViewerModal) closeImageViewer();
-            };
-        }
+function closeImageViewer() {
+    imageViewerModal.classList.add('hidden');
+    fullScreenImage.src = '';
+}
+
+if (closeViewerBtn) {
+    closeViewerBtn.onclick = closeImageViewer;
+}
+
+if (imageViewerModal) {
+    imageViewerModal.onclick = (e) => {
+        if (e.target === imageViewerModal) closeImageViewer();
+    };
+}
 
 
-        // Expose functions to global scope for inline HTML handlers
-        window.openImageViewer = openImageViewer;
-        window.deletePhoto = deletePhoto;
-
-        // Expose functions to global scope for inline HTML handlers
-        window.openImageViewer = openImageViewer;
-        window.deletePhoto = deletePhoto;
+// Expose functions to global scope for inline HTML handlers
+window.openImageViewer = openImageViewer;
+window.deletePhoto = deletePhoto;
