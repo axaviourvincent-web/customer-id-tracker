@@ -701,28 +701,52 @@ document.getElementById('close-crop-btn').onclick = hideCropModal;
 async function compressImage(canvas, filename) {
     const targetMinSize = 200 * 1024; // 200KB
     const targetMaxSize = 300 * 1024; // 300KB
+
+    // First, resize if image is too large
+    let workingCanvas = canvas;
+    const maxDimension = 2000; // Max width or height
+
+    if (canvas.width > maxDimension || canvas.height > maxDimension) {
+        const scale = Math.min(maxDimension / canvas.width, maxDimension / canvas.height);
+        const resizedCanvas = document.createElement('canvas');
+        resizedCanvas.width = canvas.width * scale;
+        resizedCanvas.height = canvas.height * scale;
+
+        const ctx = resizedCanvas.getContext('2d');
+        ctx.drawImage(canvas, 0, 0, resizedCanvas.width, resizedCanvas.height);
+        workingCanvas = resizedCanvas;
+
+        console.log(`Resized image from ${canvas.width}x${canvas.height} to ${resizedCanvas.width}x${resizedCanvas.height}`);
+    }
+
     let quality = 0.7; // Start with 70% quality
     let blob = null;
 
     // Try to compress to target size
-    for (let i = 0; i < 5; i++) {
+    for (let i = 0; i < 8; i++) {
         blob = await new Promise(resolve => {
-            canvas.toBlob(resolve, 'image/jpeg', quality);
+            workingCanvas.toBlob(resolve, 'image/jpeg', quality);
         });
 
-        console.log(`Compression attempt ${i + 1}: Quality ${quality}, Size ${(blob.size / 1024).toFixed(2)}KB`);
+        const sizeKB = (blob.size / 1024).toFixed(2);
+        console.log(`Compression attempt ${i + 1}: Quality ${(quality * 100).toFixed(0)}%, Size ${sizeKB}KB`);
 
         // If size is within target range, we're done
         if (blob.size >= targetMinSize && blob.size <= targetMaxSize) {
-            console.log(`✓ Achieved target size: ${(blob.size / 1024).toFixed(2)}KB`);
+            console.log(`✓ Achieved target size: ${sizeKB}KB`);
             break;
         }
 
-        // If too large, reduce quality
+        // If too large, reduce quality more aggressively
         if (blob.size > targetMaxSize) {
-            quality -= 0.1;
-            if (quality < 0.3) {
-                quality = 0.3; // Don't go below 30% quality
+            if (blob.size > targetMaxSize * 2) {
+                quality -= 0.15; // Reduce more if way too large
+            } else {
+                quality -= 0.08;
+            }
+
+            if (quality < 0.2) {
+                quality = 0.2; // Don't go below 20% quality
                 break;
             }
         } else {
@@ -731,20 +755,38 @@ async function compressImage(canvas, filename) {
         }
     }
 
+    const finalSizeKB = (blob.size / 1024).toFixed(2);
+    console.log(`✓ Final compressed size: ${finalSizeKB}KB`);
+
     return blob;
 }
 
 document.getElementById('confirm-crop-btn').onclick = async () => {
     if (!cropper) return;
 
-    const canvas = cropper.getCroppedCanvas();
-    const compressedBlob = await compressImage(canvas, selectedFile.name);
+    // Show compression status
+    const statusDiv = document.createElement('div');
+    statusDiv.className = "fixed top-4 right-4 bg-purple-600 text-white px-4 py-2 rounded shadow-lg z-50";
+    statusDiv.innerText = "Compressing image...";
+    document.body.appendChild(statusDiv);
 
-    console.log(`Final upload size: ${(compressedBlob.size / 1024).toFixed(2)}KB`);
+    try {
+        const canvas = cropper.getCroppedCanvas();
+        console.log(`Original canvas size: ${canvas.width}x${canvas.height}`);
 
-    // Pass the compressed image to upload
-    uploadPhoto(compressedBlob, selectedFile.name);
-    hideCropModal();
+        const compressedBlob = await compressImage(canvas, selectedFile.name);
+
+        statusDiv.innerText = `Compressed to ${(compressedBlob.size / 1024).toFixed(0)}KB`;
+        setTimeout(() => statusDiv.remove(), 2000);
+
+        // Pass the compressed image to upload
+        uploadPhoto(compressedBlob, selectedFile.name);
+        hideCropModal();
+    } catch (error) {
+        console.error('Compression error:', error);
+        statusDiv.remove();
+        alert('Error compressing image: ' + error.message);
+    }
 };
 
 
