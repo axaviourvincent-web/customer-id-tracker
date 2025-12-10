@@ -697,13 +697,54 @@ function hideCropModal() {
 
 document.getElementById('close-crop-btn').onclick = hideCropModal;
 
-document.getElementById('confirm-crop-btn').onclick = () => {
+// Compress image to target size (200-300KB)
+async function compressImage(canvas, filename) {
+    const targetMinSize = 200 * 1024; // 200KB
+    const targetMaxSize = 300 * 1024; // 300KB
+    let quality = 0.7; // Start with 70% quality
+    let blob = null;
+
+    // Try to compress to target size
+    for (let i = 0; i < 5; i++) {
+        blob = await new Promise(resolve => {
+            canvas.toBlob(resolve, 'image/jpeg', quality);
+        });
+
+        console.log(`Compression attempt ${i + 1}: Quality ${quality}, Size ${(blob.size / 1024).toFixed(2)}KB`);
+
+        // If size is within target range, we're done
+        if (blob.size >= targetMinSize && blob.size <= targetMaxSize) {
+            console.log(`✓ Achieved target size: ${(blob.size / 1024).toFixed(2)}KB`);
+            break;
+        }
+
+        // If too large, reduce quality
+        if (blob.size > targetMaxSize) {
+            quality -= 0.1;
+            if (quality < 0.3) {
+                quality = 0.3; // Don't go below 30% quality
+                break;
+            }
+        } else {
+            // If too small, we can accept it (better quality)
+            break;
+        }
+    }
+
+    return blob;
+}
+
+document.getElementById('confirm-crop-btn').onclick = async () => {
     if (!cropper) return;
-    cropper.getCroppedCanvas().toBlob((blob) => {
-        // Pass the blobed image to upload
-        uploadPhoto(blob, selectedFile.name);
-        hideCropModal();
-    });
+
+    const canvas = cropper.getCroppedCanvas();
+    const compressedBlob = await compressImage(canvas, selectedFile.name);
+
+    console.log(`Final upload size: ${(compressedBlob.size / 1024).toFixed(2)}KB`);
+
+    // Pass the compressed image to upload
+    uploadPhoto(compressedBlob, selectedFile.name);
+    hideCropModal();
 };
 
 
