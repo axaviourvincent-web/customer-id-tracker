@@ -626,14 +626,17 @@ async function getOrCreateMasterFolder() {
 
 // --- PHOTO UPLOAD & CROP ---
 
-// File Input Change (Trigger Crop Modal)
-const fileInput = document.getElementById('file-input');
+// Photo Upload Modal
+const photoUploadModal = document.getElementById('photo-upload-modal');
+const cameraInput = document.getElementById('camera-input');
+const galleryInput = document.getElementById('gallery-input');
 const cropModal = document.getElementById('crop-modal');
 const cropImage = document.getElementById('crop-image');
 let cropper = null;
 let selectedFile = null;
 
-fileInput.onchange = function (e) {
+// Function to handle file selection (common for both camera and gallery)
+function handleFileSelection(e) {
     if (e.target.files && e.target.files.length > 0) {
         selectedFile = e.target.files[0];
         const reader = new FileReader();
@@ -643,11 +646,32 @@ fileInput.onchange = function (e) {
         };
         reader.readAsDataURL(selectedFile);
     }
+}
+
+// Attach handlers to both inputs
+cameraInput.onchange = handleFileSelection;
+galleryInput.onchange = handleFileSelection;
+
+// Show photo upload modal when "Add Photo" button is clicked
+document.getElementById('upload-photo-btn').onclick = () => {
+    photoUploadModal.classList.remove('hidden');
 };
 
-// Fix: Trigger file input when the formatted button is clicked
-document.getElementById('upload-photo-btn').onclick = () => {
-    fileInput.click();
+// Handle "From Camera" option
+document.getElementById('camera-option-btn').onclick = () => {
+    photoUploadModal.classList.add('hidden');
+    cameraInput.click();
+};
+
+// Handle "From Gallery" option
+document.getElementById('gallery-option-btn').onclick = () => {
+    photoUploadModal.classList.add('hidden');
+    galleryInput.click();
+};
+
+// Handle cancel button
+document.getElementById('cancel-photo-upload-btn').onclick = () => {
+    photoUploadModal.classList.add('hidden');
 };
 
 function showCropModal() {
@@ -666,7 +690,8 @@ function hideCropModal() {
         cropper.destroy();
         cropper = null;
     }
-    fileInput.value = ''; // Reset input
+    cameraInput.value = ''; // Reset camera input
+    galleryInput.value = ''; // Reset gallery input
 }
 
 document.getElementById('close-crop-btn').onclick = hideCropModal;
