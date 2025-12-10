@@ -265,7 +265,10 @@ function navigateTo(viewId, addToHistory = true) {
         }
     });
 
-    if (viewId === 'view-search') document.getElementById('search-input').focus();
+    if (viewId === 'view-search') {
+        document.getElementById('search-input').focus();
+        performSearch(); // Refresh the list to show newly added customers
+    }
     if (viewId === 'view-add') document.getElementById('inp-book-id').focus();
 
     // History Logic
