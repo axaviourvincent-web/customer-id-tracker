@@ -488,6 +488,7 @@ function showCustomerDetails(row) {
     const rawPhone = row[2] ? row[2].toString() : "";
     const cleanPhone = rawPhone.replace(/\D/g, ''); // Remove non-digits
     document.getElementById('det-phone-link').href = `tel:${cleanPhone}`;
+    document.getElementById('det-phone-link-text').href = `tel:${cleanPhone}`;
     document.getElementById('det-date-created').innerText = row[4] || "Unknown";
 
     // Setup Delete Button
